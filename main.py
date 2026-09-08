@@ -1,6 +1,6 @@
 from pathlib import Path
 import markdown
-from fastapi import FastAPI
+from fastapi import FastAPI,HTTPException
 from pydantic import BaseModel, Field
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -37,6 +37,8 @@ class ArticleInfo(BaseModel):
 class ArticleCreate(BaseModel):
     name: str
     content: str
+class ArticleEdit(BaseModel):
+    content : str
 
 
 @app.get("/")
@@ -92,6 +94,13 @@ def lire_article(article_url: str) -> Article:
 @app.post("/create")
 def create_article(new_article: ArticleCreate):
     name = new_article.name
+    if len(name)>50:
+        raise HTTPException(401,"the title is too long")
+    if len(name)==0:
+        raise HTTPException(401,"No title")
+    if ".." in name:
+        raise HTTPException(401,"name invalid")
+
     content = new_article.content
     source = new_article.content
     new_article_file = ARTICLES_DIR /(name+".md")
@@ -107,3 +116,21 @@ def create_article(new_article: ArticleCreate):
         source=source
     )
     return article
+
+@app.post("/article/{article_url}/edit")
+def edit_article(article_url: str,modification: ArticleEdit):
+    #récupère le contenu de l'article de article_url
+    #edit le contenu de l'instance d'article
+    #renvoie l'article modifié 
+    name = article_url.replace("_", " ")
+    filename = name+".md"
+    article_path = ARTICLES_DIR / filename
+    if not article_path.exists():
+        raise HTTPException(
+            status_code=404,
+            detail="The article does not exist."
+        )
+    article_path.write_text(
+        modification.content,
+        encoding="utf-8"
+    )
