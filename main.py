@@ -2,7 +2,7 @@ from pathlib import Path
 import markdown
 from fastapi import FastAPI,HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from methods import liste_article,lire_article,create_article,edit_article,liste_comment,create_comment
+from methods import liste_article,lire_article,create_article,edit_article,liste_comment,create_comment,delete_article
 
 app = FastAPI()
 app.add_middleware(
@@ -20,5 +20,5 @@ app.post("/article/{article_url}/edit")(edit_article)
 
 app.get("/comments")(liste_comment)
 app.post("/comments", status_code=201)(create_comment)
-
+app.get("/article/{article_url}/delete")(delete_article)
 

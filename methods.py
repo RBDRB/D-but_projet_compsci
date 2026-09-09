@@ -1,5 +1,6 @@
 from pathlib import Path
 import markdown
+import json
 from models import ArticleInfo,ArticleCreate,ArticleEdit,Article,Comment,CommentCreate
 from fastapi import FastAPI,HTTPException
 
@@ -47,7 +48,8 @@ def lire_article(article_url: str) -> Article:
 
     return article 
 
-def create_article(new_article: ArticleCreate):
+def create_article(new_article: ArticleCreate)->Article:
+    ##nom
     name = new_article.name
     if len(name)>50:
         raise HTTPException(400,"the title is too long")
@@ -55,26 +57,37 @@ def create_article(new_article: ArticleCreate):
         raise HTTPException(400,"No title")
     if ".." in name:
         raise HTTPException(400,"name invalid")
-
+    ##
+    ##content
     content = new_article.content
     if len(content)>200000:
         raise HTTPException(400,"Title too long")
-    
     source = new_article.content
     new_article_file = ARTICLES_DIR /(name+".md")
+
+    ## Ajout ligne
+    ligne_json = json.dumps({"author":new_article.author,"category":new_article.category,"tags":new_article.tags})
     try :
-        new_article_file.write_text(content,encoding="utf-8")
+        new_article_file.write_text(ligne_json+"\n"+content,encoding="utf-8")
+
     except : 
         print("une erreur")
     article_url = name.replace(" ", "_")
+    ##
 
     content = markdown.markdown(source)
+
+    ##ligne Json
+
 
     article = Article(
         name = name,
         articleUrl= article_url,  
         content=content,
-        source=source
+        source=source,
+        author= new_article.author,
+        category = new_article.category,
+        tags=new_article.tags
     )
     return article
 
@@ -112,4 +125,15 @@ def create_comment(new_comment: CommentCreate)->Comment:
     next_comment_id +=1
     return comment
 
-
+def delete_article(article_url: str):
+    ## il me faut le path de Thrash
+    ## il me faut le path de articles
+    ## et il me faut le filename de article_dl dans articles pour le transférer 
+    THRASH_DIR = Path(__file__).parent.parent / "Thrash"
+    filename = article_url.replace("_", " ") + ".md"
+    article_path = ARTICLES_DIR / filename
+    thrash_path = THRASH_DIR / filename
+    if thrash_path.exists():
+        thrash_path.unlink()
+    article_path.rename(thrash_path)
+    
